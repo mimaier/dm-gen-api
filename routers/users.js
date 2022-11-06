@@ -3,14 +3,18 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const { User } = require('../models/user');
 const jwt = require('jsonwebtoken');
+const { ObjectID } = require('mongodb');
  /**
   * GET ALL ---------------------------------------------------------------- 
   */
 router.get(`/`, async (req, res) => { //only '/'and beyond, because the real path is already defined at function call
+    console.log("henlo");
+
     const userList = await User.find().select('-passwordHash'); //Gets everything from the Product Schema from the DB
     if(!userList) {
         res.status(500).json({success: false})
     }
+    console.log("henlo");
     res.send(userList);
 });
 
@@ -26,11 +30,28 @@ router.get(`/:id`, async (req, res) => {
 });
 
 /**
+  * GET COUNT ---------------------------------------------------------------- 
+  */
+
+ router.get(`/get/count`, async (req, res) => {
+    const userCount = await User.countDocuments();
+ 
+    if (!userCount) {
+        res.status(500).json({ success: false });
+    }
+    res.send({
+        userCount: userCount,
+    });
+});
+
+
+
+/**
   * POST ---------------------------------------------------------------- 
   */
 
 // promise way
-router.post(`/`, (req, res) => {
+router.post(`/register`, (req, res) => {
     const user = new User({
         username: req.body.username, 
         email: req.body.email,
@@ -59,11 +80,12 @@ router.post(`/login`, async (req, res) => {
         if(user && bcrypt.compareSync(req.body.password, user.passwordHash)){
             const token = jwt.sign(
                 { 
-                    userId: user.id
+                    userId: user.id,
+                    isAdmin: user.isAdmin
                 }, 
                 secret
             )
-            res.status(200).send({user: user.email, token: token});
+            res.status(200).send({username:user.username, usermail: user.email, token: token});
         }else{
             return res.status(400).send('wrong password or username');
         }

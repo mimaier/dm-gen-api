@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
 require("dotenv/config");
 const api = process.env.API_URL;
 const authJwt = require('./helpers/jwt');
-
+const errorHandler = require('./helpers/error-handler')
 const cors = require('cors'); //enables cross origin resources
 app.use(cors());
 app.options('*', cors());
@@ -21,6 +21,7 @@ const usersRouter = require('./routers/users');
 app.use(express.json());  //instead of app.use(bodyParser.json())
 app.use(morgan('tiny')); // automatic logger
 app.use(authJwt());
+//app.use(errorHandler);
 //----------------------------------------------------------------
 
 //Routers-----------------------------------------------------
