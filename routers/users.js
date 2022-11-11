@@ -71,8 +71,10 @@ router.post(`/register`, (req, res) => {
 
 
 router.post(`/login`, async (req, res) => {
+    console.log("in login");
     const user = await User.findOne({email: req.body.email})
     const secret = process.env.secret;
+    console.log("after consts");
 
     if(!user){
         return res.status(400).send('user not found');
