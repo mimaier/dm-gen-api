@@ -4,6 +4,8 @@ const bcrypt = require('bcryptjs');
 const { User } = require('../models/user');
 const jwt = require('jsonwebtoken');
 const { ObjectID } = require('mongodb');
+const nodemailer = require("nodemailer");
+
  /**
   * GET ALL ---------------------------------------------------------------- 
   */
@@ -35,7 +37,7 @@ router.get(`/:id`, async (req, res) => {
 
  router.get(`/get/count`, async (req, res) => {
     const userCount = await User.countDocuments();
- 
+    
     if (!userCount) {
         res.status(500).json({ success: false });
     }
@@ -43,6 +45,8 @@ router.get(`/:id`, async (req, res) => {
         userCount: userCount,
     });
 });
+
+
 
 
 
@@ -61,6 +65,53 @@ router.post(`/register`, (req, res) => {
 
     user.save().then((createdUser=> {
         res.status(201).json(createdUser)
+        let user = req.body;
+        console.log(user);
+        try {
+            sendMail(user, info => {
+                console.log(`Email wurde gesendet!! an ${req.email} !`);
+            })
+        } catch (error) {
+            console.log("email ging in catch block!");
+        }
+        
+        //sendin EMAIL ---------------------------------
+
+
+
+        async function sendMail(user, callback) {
+            let transporter = nodemailer.createTransport({
+                host: "smtp-relay.sendinblue.com",
+                port: 587,
+                secure: false, 
+                auth: {
+                    user: "dmgenecorpmail@gmail.com",
+                    pass: "xsmtpsib-776ca91a4bbd8dbb655156e4c7d2be1501b7412c5b8c27114cee26f0c7606852-3WFDbLkhXPmMQsRS"
+                }
+            });
+            console.log("is in function!");
+            console.log(user.email);
+
+            let mailOptions = {
+                from: "dm-gen-team@dm-gen.com", //sender address
+                to: user.email,
+                subject: "Welcome to dm-gen.com!",
+                html: `<h1>Hi ${user.username}</h1>`
+            }
+            console.log(mailOptions);
+
+            let info = await transporter.sendMail(mailOptions);
+        
+            callback(info);
+        
+        }
+
+        //--------------------------------
+
+
+
+
+
     })).catch((err) => {
         res.status(500).json({
             error: err,

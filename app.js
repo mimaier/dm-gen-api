@@ -11,6 +11,8 @@ const api = process.env.API_URL;
 const authJwt = require('./helpers/jwt');
 const errorHandler = require('./helpers/error-handler')
 const cors = require('cors'); //enables cross origin resources
+const nodemailer = require('nodemailer');
+
 app.use(cors());
 app.options('*', cors());
 
