@@ -13,7 +13,14 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    
+    freegenerations: {
+        type: String,
+        required: true,
+    },
+    generations: {
+        type: String,
+        required: true,
+    },
     isAdmin: {
         type: Boolean,
         default: false,

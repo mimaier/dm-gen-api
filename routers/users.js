@@ -46,78 +46,76 @@ router.get(`/:id`, async (req, res) => {
     });
 });
 
-
-
-
-
 /**
   * POST ---------------------------------------------------------------- 
   */
 
 // promise way
-router.post(`/register`, (req, res) => {
-    const user = new User({
-        username: req.body.username, 
-        email: req.body.email,
-        passwordHash: bcrypt.hashSync(req.body.password, 13),
-        isAdmin: req.body.isAdmin
-    })
-
-    user.save().then((createdUser=> {
-        res.status(201).json(createdUser)
-        let user = req.body;
-        console.log(user);
-        try {
-            sendMail(user, info => {
-                console.log(`Email wurde gesendet!! an ${req.email} !`);
-            })
-        } catch (error) {
-            console.log("email ging in catch block!");
-        }
-        
-        //sendin EMAIL ---------------------------------
-
-
-
-        async function sendMail(user, callback) {
-            let transporter = nodemailer.createTransport({
-                host: "smtp-relay.sendinblue.com",
-                port: 587,
-                secure: false, 
-                auth: {
-                    user: "dmgenecorpmail@gmail.com",
-                    pass: "xsmtpsib-776ca91a4bbd8dbb655156e4c7d2be1501b7412c5b8c27114cee26f0c7606852-3WFDbLkhXPmMQsRS"
-                }
-            });
-            console.log("is in function!");
-            console.log(user.email);
-
-            let mailOptions = {
-                from: "dm-gen-team@dm-gen.com", //sender address
-                to: user.email,
-                subject: "Welcome to dm-gen.com!",
-                html: `<h1>Hi ${user.username}</h1>`
-            }
-            console.log(mailOptions);
-
-            let info = await transporter.sendMail(mailOptions);
-        
-            callback(info);
-        
-        }
-
-        //--------------------------------
-
-
-
-
-
-    })).catch((err) => {
-        res.status(500).json({
-            error: err,
-            success: false
+router.post(`/register`, async (req, res) => {
+    const dbUser = await User.findOne({email: req.body.email})
+    if(!dbUser){
+        console.log(dbUser);
+        const user = new User({
+            username: req.body.username, 
+            email: req.body.email,
+            passwordHash: bcrypt.hashSync(req.body.password, 13),
+            freegenerations: "25",
+            generations: "0",
+            isAdmin: req.body.isAdmin
         })
-    });
+        user.save().then((createdUser=> {
+            res.status(201).json(createdUser)
+            let user = req.body;
+            console.log(user);
+            try {
+                sendMail(user, info => {
+                    console.log(`Email wurde gesendet!! an ${req.email} !`);
+                })
+            } catch (error) {
+                console.log("email ging in catch block!");
+            }       
+            //sendin EMAIL ---------------------------------
+            async function sendMail(user, callback) {
+                let transporter = nodemailer.createTransport({
+                    host: "smtp-relay.sendinblue.com",
+                    port: 587,
+                    secure: false, 
+                    auth: {
+                        user: "dmgenecorpmail@gmail.com",
+                        pass: "xsmtpsib-776ca91a4bbd8dbb655156e4c7d2be1501b7412c5b8c27114cee26f0c7606852-3WFDbLkhXPmMQsRS"
+                    }
+                });
+                console.log("is in function!");
+                console.log(user.email);
+    
+                let mailOptions = {
+                    from: "dm-gen-team@dm-gen.com", //sender address
+                    to: user.email,
+                    subject: "Welcome to dm-gen.com!",
+                    html: `<h1>Hi ${user.username}</h1>`
+                }
+                console.log(mailOptions);
+    
+                let info = await transporter.sendMail(mailOptions);
+            
+                callback(info);
+            
+            }
+    
+            //--------------------------------
+    
+        })).catch((err) => {
+            res.status(500).json({
+                error: err,
+                success: false
+            })
+        });
+    }else{
+        res.status(200).json({
+            success: true, message: "User already registered"
+        })
+    }
+    
 });
 
 
@@ -138,7 +136,7 @@ router.post(`/login`, async (req, res) => {
                 }, 
                 secret
             )
-            res.status(200).send({username:user.username, usermail: user.email, token: token});
+            res.status(200).send({userId: user.id, username:user.username, usermail: user.email, token: token});
         }else{
             return res.status(400).send('wrong password or username');
         }
@@ -163,6 +161,32 @@ router.post(`/login`, async (req, res) => {
         username: req.body.username, 
         email: req.body.email,
         passwordHash: newPassword,
+        isAdmin: req.body.isAdmin
+       },
+       { new: true} );
+
+    if(!userList) {
+        res.status(500).json({success: false})
+    }
+    res.send(userList);
+});
+
+router.put(`/subtractfreegeneration/:id`, async (req, res) => { 
+    const userExist = await User.findById(req.params.id);
+    let newPassword;
+    if(req.body.password){ //so no password is lost when updating
+        newPassword = bcrypt.hashSync(req.body.password, 13);
+    } else {
+        newPassword = userExist.passwordHash;
+    }
+    let freegenerations_currently = userExist.freegenerations;
+    let freegenerations_new = freegenerations_currently -1;
+    const userList = await User.findByIdAndUpdate(req.params.id, 
+       {
+        username: req.body.username, 
+        email: req.body.email,
+        passwordHash: newPassword,
+        freegenerations: freegenerations_new,
         isAdmin: req.body.isAdmin
        },
        { new: true} );
