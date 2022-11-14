@@ -29,7 +29,7 @@ const usersRouter = require('./routers/users');
 //Middleware-----------------------------------------------------
 app.use(express.json());  //instead of app.use(bodyParser.json())
 app.use(morgan('tiny')); // automatic logger
-app.use(authJwt());
+//app.use(authJwt());
 //app.use(errorHandler);
 //----------------------------------------------------------------
 

@@ -5,7 +5,9 @@ const { User } = require('../models/user');
 const jwt = require('jsonwebtoken');
 const { ObjectID } = require('mongodb');
 const nodemailer = require("nodemailer");
-
+const fs = require('fs');
+var smtpTransport = require('nodemailer-smtp-transport');
+var handlebars = require('handlebars');
  /**
   * GET ALL ---------------------------------------------------------------- 
   */
@@ -59,8 +61,9 @@ router.post(`/register`, async (req, res) => {
             username: req.body.username, 
             email: req.body.email,
             passwordHash: bcrypt.hashSync(req.body.password, 13),
-            freegenerations: "25",
-            generations: "0",
+            freegenerations: 50,
+            generations: 0,
+            loginable: 0,
             isAdmin: req.body.isAdmin
         })
         user.save().then((createdUser=> {
@@ -75,6 +78,11 @@ router.post(`/register`, async (req, res) => {
                 console.log("email ging in catch block!");
             }       
             //sendin EMAIL ---------------------------------
+
+
+
+
+            
             async function sendMail(user, callback) {
                 let transporter = nodemailer.createTransport({
                     host: "smtp-relay.sendinblue.com",
@@ -88,20 +96,21 @@ router.post(`/register`, async (req, res) => {
                 console.log("is in function!");
                 console.log(user.email);
     
+                var htmlstream = fs.createReadStream("./routers/email.html");
+
+
                 let mailOptions = {
                     from: "dm-gen-team@dm-gen.com", //sender address
                     to: user.email,
                     subject: "Welcome to dm-gen.com!",
-                    html: `<h1>Hi ${user.username}</h1>`
+                    html: htmlstream
                 }
                 console.log(mailOptions);
     
                 let info = await transporter.sendMail(mailOptions);
             
                 callback(info);
-            
             }
-    
             //--------------------------------
     
         })).catch((err) => {
@@ -122,8 +131,34 @@ router.post(`/register`, async (req, res) => {
 router.post(`/login`, async (req, res) => {
     console.log("in login");
     const user = await User.findOne({email: req.body.email})
+    if(user.loginable == 1){
+        const secret = process.env.secret;
+        console.log("after consts");
+    
+        if(!user){
+            return res.status(400).send('user not found');
+        }else{     
+            if(user && bcrypt.compareSync(req.body.password, user.passwordHash)){
+                const token = jwt.sign(
+                    { 
+                        userId: user.id,
+                        isAdmin: user.isAdmin
+                    }, 
+                    secret
+                )
+                res.status(200).send({userId: user.id, username:user.username, usermail: user.email, 
+                    token: token, generations: user.generations, freegenerations: user.freegenerations});
+            }else{
+                return res.status(400).send('wrong password or username');
+            }
+        }
+    }  
+});
+
+router.post(`/speciallogin`, async (req, res) => {
+    console.log("in login");
+    const user = await User.findOne({email: req.body.email})
     const secret = process.env.secret;
-    console.log("after consts");
 
     if(!user){
         return res.status(400).send('user not found');
@@ -136,13 +171,21 @@ router.post(`/login`, async (req, res) => {
                 }, 
                 secret
             )
-            res.status(200).send({userId: user.id, username:user.username, usermail: user.email, token: token});
+
+            const userList = await User.findOneAndUpdate({email: req.body.email}, 
+                {
+                 loginable: 1
+                },
+                { new: true} );
+         
+
+            res.status(200).send({userId: user.id, username:user.username, usermail: user.email, 
+                token: token, generations: user.generations, freegenerations: user.freegenerations});
         }else{
             return res.status(400).send('wrong password or username');
         }
     }
 });
-
 /**
   * PUT ---------------------------------------------------------------- 
   */
@@ -171,7 +214,28 @@ router.post(`/login`, async (req, res) => {
     res.send(userList);
 });
 
-router.put(`/subtractfreegeneration/:id`, async (req, res) => { 
+router.put(`/makeloginable/:id`, async (req, res) => { 
+    const userExist = await User.findById(req.params.id);
+    let newPassword;
+    if(req.body.password){ //so no password is lost when updating
+        newPassword = bcrypt.hashSync(req.body.password, 13);
+    } else {
+        newPassword = userExist.passwordHash;
+    }
+    
+    const userList = await User.findByIdAndUpdate(req.params.id, 
+       {
+        loginable: 1
+       },
+       { new: true} );
+
+    if(!userList) {
+        res.status(500).json({success: false})
+    }
+    res.send(userList);
+});
+
+router.put(`/subtractfreegeneration/:id&:count`, async (req, res) => { 
     const userExist = await User.findById(req.params.id);
     let newPassword;
     if(req.body.password){ //so no password is lost when updating
@@ -180,14 +244,32 @@ router.put(`/subtractfreegeneration/:id`, async (req, res) => {
         newPassword = userExist.passwordHash;
     }
     let freegenerations_currently = userExist.freegenerations;
-    let freegenerations_new = freegenerations_currently -1;
+    let freegenerations_new = Number(freegenerations_currently) - Number(req.params.count);
     const userList = await User.findByIdAndUpdate(req.params.id, 
        {
-        username: req.body.username, 
-        email: req.body.email,
-        passwordHash: newPassword,
-        freegenerations: freegenerations_new,
-        isAdmin: req.body.isAdmin
+        freegenerations: freegenerations_new
+       },
+       { new: true} );
+
+    if(!userList) {
+        res.status(500).json({success: false})
+    }
+    res.send(userList);
+});
+
+router.put(`/addfreegeneration/:id&:count`, async (req, res) => { 
+    const userExist = await User.findById(req.params.id);
+    let newPassword;
+    if(req.body.password){ //so no password is lost when updating
+        newPassword = bcrypt.hashSync(req.body.password, 13);
+    } else {
+        newPassword = userExist.passwordHash;
+    }
+    let freegenerations_currently = userExist.freegenerations;
+    let freegenerations_new = Number(freegenerations_currently) + Number(req.params.count);
+    const userList = await User.findByIdAndUpdate(req.params.id, 
+       {
+        freegenerations: freegenerations_new
        },
        { new: true} );
 
