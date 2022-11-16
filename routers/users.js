@@ -131,7 +131,7 @@ router.post(`/register`, async (req, res) => {
 router.post(`/login`, async (req, res) => {
     console.log("in login");
     const user = await User.findOne({email: req.body.email})
-    if(user.loginable == 1){
+   
         const secret = process.env.secret;
         console.log("after consts");
     
@@ -145,14 +145,14 @@ router.post(`/login`, async (req, res) => {
                         isAdmin: user.isAdmin
                     }, 
                     secret
-                )
-                res.status(200).send({userId: user.id, username:user.username, usermail: user.email, 
-                    token: token, generations: user.generations, freegenerations: user.freegenerations});
+              )
+                res.status(200).send({ userId: user.id, username:user.username, usermail: user.email, 
+                    token: token, generations: user.generations, freegenerations: user.freegenerations, loginable: user.loginable});
             }else{
                 return res.status(400).send('wrong password or username');
             }
         }
-    }  
+    
 });
 
 router.post(`/speciallogin`, async (req, res) => {
@@ -257,7 +257,7 @@ router.put(`/subtractfreegeneration/:id&:count`, async (req, res) => {
     res.send(userList);
 });
 
-router.put(`/addfreegeneration/:id&:count`, async (req, res) => { 
+router.put(`/addfreegene   ration/:id&:count`, async (req, res) => { 
     const userExist = await User.findById(req.params.id);
     let newPassword;
     if(req.body.password){ //so no password is lost when updating
