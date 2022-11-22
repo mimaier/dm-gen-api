@@ -257,7 +257,29 @@ router.put(`/subtractfreegeneration/:id&:count`, async (req, res) => {
     res.send(userList);
 });
 
-router.put(`/addfreegene   ration/:id&:count`, async (req, res) => { 
+router.put(`/subtractgeneration/:id&:count`, async (req, res) => { 
+    const userExist = await User.findById(req.params.id);
+    let newPassword;
+    if(req.body.password){ //so no password is lost when updating
+        newPassword = bcrypt.hashSync(req.body.password, 13);
+    } else {
+        newPassword = userExist.passwordHash;
+    }
+    let generations_currently = userExist.generations;
+    let generations_new = Number(generations_currently) - Number(req.params.count);
+    const userList = await User.findByIdAndUpdate(req.params.id, 
+       {
+        generations: generations_new
+       },
+       { new: true} );
+
+    if(!userList) {
+        res.status(500).json({success: false})
+    }
+    res.send(userList);
+});
+
+router.put(`/addfreegeneration/:id&:count`, async (req, res) => { 
     const userExist = await User.findById(req.params.id);
     let newPassword;
     if(req.body.password){ //so no password is lost when updating
@@ -274,6 +296,36 @@ router.put(`/addfreegene   ration/:id&:count`, async (req, res) => {
        { new: true} );
 
     if(!userList) {
+        res.status(500).json({success: false})
+    }
+    res.send(userList);
+});
+
+router.put(`/addgeneration/:id&:count`, async (req, res) => { 
+    const userExist = await User.findById(req.params.id);
+
+    console.log(userExist);
+    let newPassword;
+    if(req.body.password){ //so no password is lost when updating
+        newPassword = bcrypt.hashSync(req.body.password, 13);
+    } else {
+        newPassword = userExist.passwordHash;
+    }
+    let generations_currently = userExist.generations;
+    console.log(generations_currently);
+
+    let generations_new = Number(generations_currently) + Number(req.params.count);
+    console.log(generations_new);
+
+    const userList = await User.findByIdAndUpdate(req.params.id, 
+       {
+        generations: generations_new
+       },
+       { new: true} );
+
+    if(!userList) {
+        console.log("leer");
+
         res.status(500).json({success: false})
     }
     res.send(userList);
