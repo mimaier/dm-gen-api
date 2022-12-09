@@ -71,7 +71,7 @@ router.post(`/register`, async (req, res) => {
             let user = req.body;
             console.log(user);
             try {
-                sendMail(user, info => {
+                sendRegisterMail(user, info => {
                     console.log(`Email wurde gesendet!! an ${req.email} !`);
                 })
             } catch (error) {
@@ -83,7 +83,8 @@ router.post(`/register`, async (req, res) => {
 
 
             
-            async function sendMail(user, callback) {
+            async function sendRegisterMail(user, callback) {
+                try {
                 let transporter = nodemailer.createTransport({
                     host: "smtp-relay.sendinblue.com",
                     port: 587,
@@ -96,7 +97,7 @@ router.post(`/register`, async (req, res) => {
                 console.log("is in function!");
                 console.log(user.email);
     
-                var htmlstream = fs.createReadStream("./routers/email.html");
+                var htmlstream = fs.createReadStream("./routers/registerEmail.html");
 
 
                 let mailOptions = {
@@ -110,6 +111,9 @@ router.post(`/register`, async (req, res) => {
                 let info = await transporter.sendMail(mailOptions);
             
                 callback(info);
+            } catch (err) {
+                console.log(err);
+            }
             }
             //--------------------------------
     
@@ -123,6 +127,59 @@ router.post(`/register`, async (req, res) => {
         res.status(200).json({
             success: true, message: "User already registered"
         })
+    }
+    
+});
+
+router.post(`/forgot-password`, async (req, res) => {
+    const user = await User.findOne({email: req.body.email})
+       
+    if(!user){
+        return res.status(400).send('user not found');
+    }else{     
+        if(user){
+
+            try {
+                sendForgotPWMail(user, info => {
+                    console.log(`Email wurde gesendet!! an ${req.email} !`);
+                })
+            } catch (error) {
+                console.log("email ging in catch block!");
+            } 
+
+
+            //sendin EMAIL ---------------------------------
+            async function sendForgotPWMail(user, callback) {
+                try {
+                    let transporter = nodemailer.createTransport({
+                        host: "smtp-relay.sendinblue.com",
+                        port: 587,
+                        secure: false, 
+                        auth: {
+                            user: "dmgenecorpmail@gmail.com",
+                            pass: "xsmtpsib-776ca91a4bbd8dbb655156e4c7d2be1501b7412c5b8c27114cee26f0c7606852-3WFDbLkhXPmMQsRS"
+                        }
+                    });
+                    var htmlstream = fs.createReadStream("./routers/forgotPWEmail.html");
+                    let mailOptions = {
+                        from: "dm-gen-team@dm-gen.com", //sender address
+                        to: user.email,
+                        subject: "Password reset for dm-gen.com!",
+                        html: htmlstream
+                    }
+                    console.log(mailOptions);
+                    let info = await transporter.sendMail(mailOptions);
+                    callback(info);
+                } catch(err) {
+                    console.log(err);
+                }
+                
+            } 
+            //--------------------------------
+
+
+            res.status(200).send({ userId: user.id, username:user.username, usermail: user.email});
+        }
     }
     
 });
@@ -233,6 +290,44 @@ router.put(`/makeloginable/:id`, async (req, res) => {
         res.status(500).json({success: false})
     }
     res.send(userList);
+});
+
+router.put(`/change-password/:email`, async (req, res) => { 
+    let newPassword = "";
+    try {
+        const userExist = await User.findOne({email: req.params.email});
+        console.log(userExist);
+        if(userExist != null){
+            if(req.body.password){ //so no password is lost when updating
+                newPassword = bcrypt.hashSync(req.body.password, 13);
+                console.log("new");
+    
+            } else {
+                newPassword = userExist.passwordHash;
+                console.log("old");
+    
+            }
+    
+            const userList = await User.findOneAndUpdate({email: req.params.email}, 
+               {
+                passwordHash: newPassword,
+                loginable: 1
+               },
+               { new: true} );
+        
+            if(!userList) {
+                res.status(500).json({success: false})
+            }
+            res.send(userList);
+        }else{
+            res.status(404).send('Sorry, cant find that');
+        }
+        
+    } catch(err) {
+        res.status(404).send('Sorry, cant find that');
+        console.log("error"); 
+    }
+    
 });
 
 router.put(`/subtractfreegeneration/:id&:count`, async (req, res) => { 
