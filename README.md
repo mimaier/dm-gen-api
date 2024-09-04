@@ -1,4 +1,6 @@
-🌟 Project Name: Dm-Gen Welcome to [Your Project Name], a private passion project developed by two avid Dungeons & Dragons enthusiasts to bring a unique and creative tool to the D&D community. Our goal is to create a website that makes it easy to generate stunning artwork for personal Dungeons & Dragons campaigns, whether it’s character portraits, epic landscapes, or atmospheric scenes that capture the essence of your game.
+🌟 Project Name: Dm-Gen 
+
+Welcome to Dm-Gen, a private passion project developed by two avid Dungeons & Dragons enthusiasts to bring a unique and creative tool to the D&D community. Our goal is to create a website that makes it easy to generate stunning artwork for personal Dungeons & Dragons campaigns, whether it’s character portraits, epic landscapes, or atmospheric scenes that capture the essence of your game.
 
 🎨 What It Does Leveraging the powerful capabilities of the DeepAI Text-to-Image model, this project uses API calls to generate beautiful, thematically fitting artwork. With just a few clicks, users can create character portraits or landscape art that perfectly match the mood and style of their campaign. The result is a seamless, user-friendly experience that brings your imaginative worlds to life.
 
